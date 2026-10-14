@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>賞味期限管理アプリ</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif, system-ui; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col antialiased">
+
+<header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+        <div class="flex flex-col gap-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="p-2.5 bg-emerald-500 text-white rounded-2xl shadow-md shadow-emerald-200">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h1 class="text-xl font-bold text-slate-900 leading-tight">賞味期限管理アプリ</h1>
+                            <span id="cloud-status-badge" class="px-2 py-0.5 bg-emerald-50 text-emerald-700 text-[10px] font-bold rounded-full border border-emerald-200 flex items-center gap-1">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> クラウド保存中
+                            </span>
+                        </div>
+                        <p class="text-xs text-slate-500">食品・日用品の賞味期限と経過日数を楽々チェック</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ボタンエリア -->
+            <div class="grid grid-cols-2 gap-3 w-full">
+                <button onclick="triggerCameraInput()" class="w-full inline-flex items-center justify-center px-4 py-3 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-medium text-xs sm:text-sm rounded-xl shadow-sm transition-all duration-200 gap-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 whitespace-nowrap">
+                    <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    </svg>
+                    <span>写真で自動登録</span>
+                </button>
+                <input type="file" id="camera-input" accept="image/*" capture="environment" class="hidden" onchange="handleImageCaptured(event)">
+
+                <button onclick="openModal()" class="w-full inline-flex items-center justify-center px-4 py-3 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-medium text-xs sm:text-sm rounded-xl shadow-sm transition-all duration-200 gap-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 whitespace-nowrap">
+                    <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                    </svg>
+                    <span>新規手動登録</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</header>
+
+<main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+    <div class="space-y-3">
+        <div onclick="filterByStatus('ALL')" class="bg-white p-3.5 sm:p-4 rounded-xl sm:rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between cursor-pointer hover:border-blue-300 hover:shadow-md transition-all active:scale-98 select-none">
+            <div class="flex items-center space-x-3">
+                <div class="p-2.5 sm:p-3 bg-blue-50 text-blue-600 rounded-lg sm:rounded-xl flex-shrink-0">
+                    <svg class="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                    </svg>
+                </div>
+                <div>
+                    <div class="text-xs sm:text-sm text-slate-500 font-medium">登録アイテム（全件）</div>
+                    <div class="text-xs text-slate-400">タップしてすべてのアイテムを表示</div>
+                </div>
+            </div>
+            <div id="stat-total" class="text-xl sm:text-2xl font-bold text-slate-800 pr-2">0</div>
+        </div>
+
+        <div class="grid grid-cols-3 gap-2 sm:gap-4">
+            <div onclick="filterByStatus('SAFE')" class="bg-white p-2.5 sm:p-4 rounded-xl sm:rounded-2xl border border-slate-200/80 shadow-sm flex flex-col sm:flex-row items-center sm:space-x-3 text-center sm:text-left cursor-pointer hover:border-emerald-300 hover:shadow-md transition-all active:scale-95 select-none">
+                <div class="p-1.5 sm:p-3 bg-emerald-50 text-emerald-600 rounded-lg sm:rounded-xl mb-1 sm:mb-0 flex-shrink-0">
+                    <svg class="w-4 h-4 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+                <div class="min-w-0 w-full">
+                    <div class="text-[10px] sm:text-xs text-slate-500 font-medium truncate">安全</div>
+                    <div id="stat-safe" class="text-sm sm:text-xl font-bold text-emerald-600">0</div>
+                </div>
+            </div>
+
+            <div onclick="filterByStatus('WARNING')" class="bg-white p-2.5 sm:p-4 rounded-xl sm:rounded-2xl border border-slate-200/80 shadow-sm flex flex-col sm:flex-row items-center sm:space-x-3 text-center sm:text-left cursor-pointer hover:border-amber-300 hover:shadow-md transition-all active:scale-95 select-none">
+                <div class="p-1.5 sm:p-3 bg-amber-50 text-amber-600 rounded-lg sm:rounded-xl mb-1 sm:mb-0 flex-shrink-0">
+                    <svg class="w-4 h-4 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                    </svg>
+                </div>
+                <div class="min-w-0 w-full">
+                    <div class="text-[10px] sm:text-xs text-slate-500 font-medium truncate">注意 (3日以内)</div>
+                    <div id="stat-warning" class="text-sm sm:text-xl font-bold text-amber-600">0</div>
+                </div>
+            </div>
+
+            <div onclick="filterByStatus('EXPIRED')" class="bg-white p-2.5 sm:p-4 rounded-xl sm:rounded-2xl border border-slate-200/80 shadow-sm flex flex-col sm:flex-row items-center sm:space-x-3 text-center sm:text-left cursor-pointer hover:border-rose-300 hover:shadow-md transition-all active:scale-95 select-none">
+                <div class="p-1.5 sm:p-3 bg-rose-50 text-rose-600 rounded-lg sm:rounded-xl mb-1 sm:mb-0 flex-shrink-0">
+                    <svg class="w-4 h-4 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+                <div class="min-w-0 w-full">
+                    <div class="text-[10px] sm:text-xs text-slate-500 font-medium truncate">期限切れ</div>
+                    <div id="stat-expired" class="text-sm sm:text-xl font-bold text-rose-600">0</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
+        <div class="flex flex-col sm:flex-row gap-3 justify-between items-stretch sm:items-center">
+            <div class="relative flex-1">
+                <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                    </svg>
+                </span>
+                <input type="text" id="search-input" oninput="renderItems()" placeholder="アイテム名で検索..." class="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all box-border">
+            </div>
+            <div class="flex items-center gap-2">
+                <select id="sort-select" onchange="renderItems()" class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all box-border">
+                    <option value="expiry-asc">期限が近い順</option>
+                    <option value="expiry-desc">期限が遠い順</option>
+                    <option value="name-asc">名前順</option>
+                </select>
+            </div>
+        </div>
+
+        <div id="active-filter-banner" class="hidden items-center justify-between bg-blue-50 border border-blue-200 text-blue-700 px-3.5 py-2 rounded-xl text-xs font-medium">
+            <div class="flex items-center gap-1.5">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707v4.172a1 1 0 01-.553.894l-4 2A1 1 0 017 18.172v-4.172a1 1 0 00-.293-.707L.293 7.293A1 1 0 010 6.586V4z"></path>
+                </svg>
+                <span id="active-filter-text">フィルター適用中</span>
+            </div>
+            <button onclick="filterByStatus('ALL')" class="text-blue-600 hover:text-blue-800 font-bold underline">解除</button>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse min-w-[750px]">
+                <thead>
+                    <tr class="bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                        <th class="py-3 px-4">アイテム名</th>
+                        <th class="py-3 px-4">登録日</th>
+                        <th class="py-3 px-4">経過日数</th>
+                        <th class="py-3 px-4">ステータス</th>
+                        <th class="py-3 px-4 text-center">操作</th>
+                    </tr>
+                </thead>
+                <tbody id="items-table-body" class="divide-y divide-slate-100 text-sm">
+                </tbody>
+            </table>
+        </div>
+    </div>
+</main>
+
+<div id="item-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm hidden transition-opacity">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4 animate-in fade-in zoom-in-95 duration-150 box-border">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <h3 id="modal-title" class="text-lg font-bold text-slate-900">新規アイテム登録</h3>
+            <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600 p-1.5 rounded-full hover:bg-slate-100 transition-colors">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+        </div>
+
+        <form id="item-form" onsubmit="saveItem(event)" class="space-y-4 w-full box-border">
+            <input type="hidden" id="item-id">
+            
+            <div class="w-full space-y-1 box-border">
+                <label class="block text-xs font-semibold text-slate-600">アイテム名 *</label>
+                <input type="text" id="form-name" required placeholder="例: 牛乳、食パン、醤油" class="w-full max-w-full box-border block px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all">
+            </div>
+
+            <div class="w-full space-y-1 box-border">
+                <label class="block text-xs font-semibold text-slate-600">カテゴリ</label>
+                <select id="form-category" class="w-full max-w-full box-border block px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all">
+                    <option value="食品">食品</option>
+                    <option value="飲料">飲料</option>
+                    <option value="調味料">調味料</option>
+                    <option value="日用品">日用品</option>
+                    <option value="医薬品">医薬品</option>
+                    <option value="その他">その他</option>
+                </select>
+            </div>
+
+            <div class="w-full space-y-1 box-border">
+                <label class="block text-xs font-semibold text-slate-600">登録日 *</label>
+                <input type="date" id="form-opened" required class="w-full max-w-full box-border block px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all">
+            </div>
+
+            <div class="w-full space-y-1 box-border">
+                <div class="flex items-center justify-between">
+                    <label class="text-xs font-semibold text-slate-600">賞味/消費期限</label>
+                    <label class="inline-flex items-center gap-1.5 cursor-pointer text-xs text-slate-700 font-medium select-none">
+                        <input type="checkbox" id="form-no-expiry" onchange="toggleNoExpiry(this)" class="rounded text-emerald-600 focus:ring-emerald-500 w-4 h-4">
+                        <span>期限なし</span>
+                    </label>
+                </div>
+                <input type="date" id="form-expiry" class="w-full max-w-full box-border block px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all">
+            </div>
+
+            <div class="w-full space-y-1 box-border">
+                <label class="block text-xs font-semibold text-slate-600">メモ</label>
+                <textarea id="form-memo" rows="2" placeholder="保管場所や特記事項など" class="w-full max-w-full box-border block px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all"></textarea>
+            </div>
+
+            <div class="flex items-center justify-end gap-2 pt-2 w-full box-border">
+                <button type="button" onclick="closeModal()" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-xl transition-colors">キャンセル</button>
+                <button type="submit" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-xl shadow-sm shadow-emerald-200 transition-colors">保存する</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="ai-loading-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm hidden">
+    <div class="bg-white rounded-3xl max-w-sm w-full p-6 text-center space-y-4 shadow-2xl">
+        <div class="inline-flex p-4 bg-indigo-50 text-indigo-600 rounded-full animate-bounce">
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
+            </svg>
+        </div>
+        <h4 class="text-base font-bold text-slate-900">AIが画像を解析中...</h4>
+        <p id="ai-status-text" class="text-xs text-slate-500">商品名や賞味期限を読み取っています</p>
+    </div>
+</div>
+
+<div id="msg-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm hidden">
+    <div class="bg-white rounded-3xl max-w-sm w-full p-6 text-center space-y-4 shadow-2xl">
+        <div id="msg-icon" class="inline-flex p-3 bg-emerald-50 text-emerald-600 rounded-full">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+            </svg>
+        </div>
+        <h4 id="msg-title" class="text-base font-bold text-slate-900">通知</h4>
+        <p id="msg-desc" class="text-xs text-slate-600 leading-relaxed"></p>
+        <button onclick="closeMsgModal()" class="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-sm font-medium rounded-xl transition-colors">OK</button>
+    </div>
+</div>
+
+<script type="module">
+    let items = [];
+    let currentFilter = 'ALL';
+
+    window.addEventListener('DOMContentLoaded', () => {
+        loadLocalStorageFallback();
+    });
+
+    function loadLocalStorageFallback() {
+        document.getElementById('cloud-status-badge').innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span> ローカル保存中';
+        const saved = localStorage.getItem('expiry_items_v10');
+        if (saved) {
+            try { items = JSON.parse(saved); } catch (e) { items = []; }
+        } else {
+            items = [];
+        }
+        renderAll();
+    }
+
+    function getOffsetDate(days) {
+        const d = new Date();
+        d.setDate(d.getDate() + days);
+        return d.toISOString().split('T')[0];
+    }
+
+    async function saveItemToCloud(itemData) {
+        const id = itemData.id || crypto.randomUUID();
+        const index = items.findIndex(i => i.id === id);
+        if (index >= 0) items[index] = { ...itemData, id };
+        else items.push({ ...itemData, id });
+        localStorage.setItem('expiry_items_v10', JSON.stringify(items));
+        renderAll();
+    }
+
+    window.deleteItem = async function(id) {
+        items = items.filter(i => i.id !== id);
+        localStorage.setItem('expiry_items_v10', JSON.stringify(items));
+        renderAll();
+        showMsg("削除完了", "アイテムを削除しました。", "success");
+    }
+
+    window.openModal = function(item = null) {
+        const modal = document.getElementById('item-modal');
+        const title = document.getElementById('modal-title');
+        const form = document.getElementById('item-form');
+        form.reset();
+        document.getElementById('item-id').value = '';
+        document.getElementById('form-no-expiry').checked = false;
+        document.getElementById('form-expiry').disabled = false;
+        document.getElementById('form-expiry').classList.remove('bg-slate-100', 'text-slate-400', 'cursor-not-allowed');
+
+        const todayStr = new Date().toISOString().split('T')[0];
+
+        if (item && item.id) {
+            title.innerText = "アイテムの編集";
+            document.getElementById('item-id').value = item.id;
+            document.getElementById('form-name').value = item.name || '';
+            document.getElementById('form-category').value = item.category || '食品';
+            document.getElementById('form-opened').value = item.opened || todayStr;
+            
+            if (item.expiry === 'なし' || !item.expiry) {
+                document.getElementById('form-no-expiry').checked = true;
+                document.getElementById('form-expiry').value = '';
+                document.getElementById('form-expiry').disabled = true;
+                document.getElementById('form-expiry').classList.add('bg-slate-100', 'text-slate-400', 'cursor-not-allowed');
+            } else {
+                document.getElementById('form-expiry').value = item.expiry;
+            }
+
+            document.getElementById('form-memo').value = item.memo || '';
+        } else {
+            title.innerText = "新規アイテム登録";
+            document.getElementById('form-opened').value = todayStr;
+            document.getElementById('form-expiry').value = getOffsetDate(7);
+        }
+        modal.classList.remove('hidden');
+    }
+
+    window.toggleNoExpiry = function(checkbox) {
+        const expiryInput = document.getElementById('form-expiry');
+        if (checkbox.checked) {
+            expiryInput.value = '';
+            expiryInput.disabled = true;
+            expiryInput.required = false;
+            expiryInput.classList.add('bg-slate-100', 'text-slate-400', 'cursor-not-allowed');
+        } else {
+            expiryInput.disabled = false;
+            expiryInput.required = false;
+            expiryInput.value = getOffsetDate(7);
+            expiryInput.classList.remove('bg-slate-100', 'text-slate-400', 'cursor-not-allowed');
+        }
+    }
+
+    window.closeModal = function() {
+        document.getElementById('item-modal').classList.add('hidden');
+    }
+
+    window.saveItem = async function(event) {
+        event.preventDefault();
+        const id = document.getElementById('item-id').value;
+        const name = document.getElementById('form-name').value;
+        const category = document.getElementById('form-category').value;
+        const opened = document.getElementById('form-opened').value;
+        const noExpiry = document.getElementById('form-no-expiry').checked;
+        const expiry = noExpiry ? 'なし' : document.getElementById('form-expiry').value;
+        const memo = document.getElementById('form-memo').value;
+
+        const itemData = { name, category, opened, expiry, memo };
+        if (id) itemData.id = id;
+
+        await saveItemToCloud(itemData);
+        closeModal();
+        showMsg("保存完了", "アイテムを保存しました。", "success");
+    }
+
+    window.filterByStatus = function(status) {
+        currentFilter = status;
+        const banner = document.getElementById('active-filter-banner');
+        const text = document.getElementById('active-filter-text');
+        if (status === 'ALL') {
+            banner.classList.add('hidden');
+        } else {
+            banner.classList.remove('hidden');
+            const mapNames = { SAFE: '安全なアイテム', WARNING: 'まもなく期限のアイテム', EXPIRED: '期限切れアイテム' };
+            text.innerText = `フィルター: ${mapNames[status] || status}`;
+        }
+        renderItems();
+    }
+
+    function calculateItemState(item) {
+        const today = new Date();
+        today.setHours(0,0,0,0);
+
+        if (item.expiry && item.expiry !== 'なし') {
+            const expiryDate = new Date(item.expiry);
+            const diffDays = Math.ceil((expiryDate - today) / (1000 * 60 * 60 * 24));
+            if (diffDays < 0) return { type: 'EXPIRED', label: `期限切れ` };
+            if (diffDays <= 3) return { type: 'WARNING', label: `あと ${diffDays} 日` };
+            return { type: 'SAFE', label: `あと ${diffDays} 日` };
+        }
+
+        return { type: 'SAFE', label: '賞味期限なし' };
+    }
+
+    function renderAll() {
+        let total = items.length;
+        let safeCount = 0;
+        let warningCount = 0;
+        let expiredCount = 0;
+
+        items.forEach(item => {
+            const state = calculateItemState(item);
+            if (state.type === 'SAFE') safeCount++;
+            else if (state.type === 'WARNING') warningCount++;
+            else if (state.type === 'EXPIRED') expiredCount++;
+        });
+
+        document.getElementById('stat-total').innerText = total;
+        document.getElementById('stat-safe').innerText = safeCount;
+        document.getElementById('stat-warning').innerText = warningCount;
+        document.getElementById('stat-expired').innerText = expiredCount;
+
+        renderItems();
+    }
+
+    window.renderItems = function() {
+        const tbody = document.getElementById('items-table-body');
+        const searchVal = document.getElementById('search-input').value.toLowerCase();
+        const sortVal = document.getElementById('sort-select').value;
+
+        let filtered = items.filter(item => {
+            const matchSearch = item.name.toLowerCase().includes(searchVal) || (item.memo && item.memo.toLowerCase().includes(searchVal)) || item.category.toLowerCase().includes(searchVal);
+            if (!matchSearch) return false;
+
+            if (currentFilter === 'ALL') return true;
+            const state = calculateItemState(item);
+            return state.type === currentFilter;
+        });
+
+        filtered.sort((a, b) => {
+            if (sortVal === 'expiry-asc') return (a.expiry || '9999-12-31').localeCompare(b.expiry || '9999-12-31');
+            if (sortVal === 'expiry-desc') return (b.expiry || '').localeCompare(a.expiry || '');
+            if (sortVal === 'name-asc') return a.name.localeCompare(b.name);
+            return 0;
+        });
+
+        if (filtered.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="5" class="py-12 text-center text-slate-400">
+                        <div class="flex flex-col items-center justify-center space-y-2">
+                            <svg class="w-8 h-8 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
+                            </svg>
+                            <span class="text-sm font-medium text-slate-600">登録されているアイテムはありません</span>
+                        </div>
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        let html = '';
+        filtered.forEach(item => {
+            const state = calculateItemState(item);
+
+            let badgeClass = 'bg-emerald-50 text-emerald-700 border-emerald-200';
+            if (state.type === 'WARNING') {
+                badgeClass = 'bg-amber-50 text-amber-700 border-amber-200 animate-pulse';
+            } else if (state.type === 'EXPIRED') {
+                badgeClass = 'bg-rose-50 text-rose-700 border-rose-200';
+            }
+
+            let elapsedDaysNum = 0;
+            if (item.opened) {
+                const today = new Date();
+                today.setHours(0,0,0,0);
+                const openedDate = new Date(item.opened);
+                const diffTime = today - openedDate;
+                const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                elapsedDaysNum = diffDays >= 0 ? diffDays : 0;
+            }
+
+            let elapsedBadgeClass = 'bg-emerald-50 text-emerald-700 border-emerald-200';
+            if (state.type === 'WARNING') {
+                elapsedBadgeClass = 'bg-amber-50 text-amber-700 border-amber-200';
+            } else if (state.type === 'EXPIRED') {
+                elapsedBadgeClass = 'bg-rose-50 text-rose-700 border-rose-200';
+            }
+            const elapsedBadgeHtml = `<span class="px-3 py-1 text-base font-bold rounded-lg border ${elapsedBadgeClass}">${elapsedDaysNum}</span>`;
+
+            html += `
+                <tr class="hover:bg-slate-50/80 transition-colors">
+                    <td class="py-3.5 px-4 font-bold text-slate-900 text-lg whitespace-nowrap">${item.name}</td>
+                    <td class="py-3.5 px-4 text-sm text-slate-600 whitespace-nowrap">${item.opened || '-'}</td>
+                    <td class="py-3.5 px-4 whitespace-nowrap">${elapsedBadgeHtml}</td>
+                    <td class="py-3.5 px-4 whitespace-nowrap">
+                        <span class="px-3 py-1 text-sm font-bold rounded-lg border ${badgeClass}">
+                            ${state.label}
+                        </span>
+                    </td>
+                    <td class="py-3.5 px-4 text-center whitespace-nowrap">
+                        <div class="inline-flex items-center justify-center gap-1.5">
+                            <button onclick='openModal(${JSON.stringify(item)})' class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium rounded-lg transition-colors">編集</button>
+                            <button onclick="deleteItem('${item.id}')" class="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs font-medium rounded-lg transition-colors">削除</button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        });
+        tbody.innerHTML = html;
+    }
+
+    window.showMsg = function(title, desc, type = 'success') {
+        document.getElementById('msg-title').innerText = title;
+        document.getElementById('msg-desc').innerText = desc;
+        const icon = document.getElementById('msg-icon');
+        if (type === 'success') {
+            icon.className = "inline-flex p-3 bg-emerald-50 text-emerald-600 rounded-full";
+        } else {
+            icon.className = "inline-flex p-3 bg-rose-50 text-rose-600 rounded-full";
+        }
+        document.getElementById('msg-modal').classList.remove('hidden');
+    }
+
+    window.closeMsgModal = function() {
+        document.getElementById('msg-modal').classList.add('hidden');
+    }
+
+    window.triggerCameraInput = function() {
+        showMsg("お知らせ", "手動登録または各ブラウザの機能をご利用ください。", "success");
+    }
+
+    window.handleImageCaptured = async function(event) {
+        // ローカル単体動作時の簡易プレースホルダー
+    }
+</script>
+</body>
+</html>
